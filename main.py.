@@ -1,0 +1,53 @@
+import telebot
+import sqlite3
+import os
+from telebot import types
+
+# --- CONFIGURACIÓN ---
+# Render usará el Token que configuraremos después
+TOKEN = os.environ.get('TOKEN')
+bot = telebot.TeleBot(TOKEN)
+
+# --- BASE DE DATOS ---
+def init_db():
+    # Creamos la base de datos para guardar los diamantes
+    conn = sqlite3.connect('airdrop_game.db')
+    cursor = conn.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS usuarios 
+                      (id INTEGER PRIMARY KEY, diamantes INTEGER DEFAULT 0)''')
+    conn.commit()
+    conn.close()
+
+# --- COMANDO /START ---
+@bot.message_handler(commands=['start'])
+def enviar_bienvenida(message):
+    user_id = message.from_user.id
+    
+    # Guardamos al usuario si es nuevo
+    conn = sqlite3.connect('airdrop_game.db')
+    cursor = conn.cursor()
+    cursor.execute("INSERT OR IGNORE INTO usuarios (id, diamantes) VALUES (?, 0)", (user_id,))
+    conn.commit()
+    conn.close()
+
+    # Botón para jugar
+    markup = types.InlineKeyboardMarkup()
+    btn_juego = types.InlineKeyboardButton(text="💎 ¡A MINAR! (Próximamente)", callback_data="proximamente")
+    markup.add(btn_juego)
+
+    bot.send_message(
+        message.chat.id, 
+        f"¡Bienvenido al Airdrop de Diamantes! 🚀\n\nTu ID: `{user_id}`\n\nPresiona el botón para comenzar cuando esté listo.",
+        reply_markup=markup,
+        parse_mode="Markdown"
+    )
+
+@bot.callback_query_handler(func=lambda call: call.data == "proximamente")
+def en_desarrollo(call):
+    bot.answer_callback_query(call.id, "¡Estamos preparando la interfaz visual! 🎨")
+
+# Iniciar el bot
+if __name__ == "__main__":
+    init_db()
+    print("Bot encendido correctamente...")
+    bot.infinity_polling()

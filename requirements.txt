@@ -1,2 +1,5 @@
 pyTelegramBotAPI
 flask
+google-generativeai
+
+
